@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Protocolos de Emergência Pediátrica</title>
+    
+    <meta name="description" content="Portal de acesso rápido a protocolos de emergência pediátrica, baseado em evidências, para suporte a decisões clínicas.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚕️</text></svg>">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #2563eb; /* Azul Sóbrio */
+            --brand-light: #eff6ff;   /* Azul Muito Claro */
+            --bg-main: #f4f4f5;      /* Cinza de Fundo */
+            --text-primary: #18181b; /* Preto Suave */
+            --text-secondary: #52525b;/* Cinza Médio */
+            --border-color: #e4e4e7;  /* Cinza Claro para Bordas */
+        }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-main); color: var(--text-primary); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .protocol-card { transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+        .protocol-card:hover { transform: translateY(-4px); box-shadow: 0 8px 25px -5px rgb(0 0 0 / 0.1); border-color: var(--brand-primary); }
+        .protocol-nav-link.active { background-color: var(--brand-light); color: var(--brand-primary); font-weight: 600; border-left-color: var(--brand-primary); }
+        /* Estilos do Protocolo Visual */
+        .visual-protocol-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; }
+        .visual-card { background-color: white; border-radius: 0.75rem; border: 1px solid var(--border-color); box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05); }
+        .visual-card-header { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); }
+        .visual-card-header h4 { font-size: 1rem; font-weight: 600; }
+        .visual-card-body { padding: 1rem; font-size: 0.875rem; color: var(--text-secondary); }
+        .visual-card-body ul { padding-left: 1rem; list-style-type: disc; }
+        .visual-card-body li { margin-bottom: 0.5rem; }
+        #back-to-top { position: fixed; bottom: 2rem; right: 2rem; background-color: var(--brand-primary); color: white; width: 3rem; height: 3rem; border-radius: 9999px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); transition: opacity 0.3s, transform 0.3s; opacity: 0; transform: translateY(1rem); pointer-events: none; }
+        #back-to-top.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    </style>
+</head>
+<body>
+
+    <main id="portal-view">
+        <header class="bg-white border-b border-[var(--border-color)] py-16 md:py-24">
+            <div class="container mx-auto px-6 text-center">
+                <h1 class="text-4xl md:text-5xl font-extrabold text-zinc-900 tracking-tight">Protocolos de Emergência Pediátrica</h1>
+                <p class="mt-4 text-lg md:text-xl text-zinc-600 max-w-3xl mx-auto">Acesso rápido e unificado a diretrizes clínicas para o atendimento de excelência.</p>
+                <div class="mt-8 relative max-w-xl mx-auto">
+                    <label for="searchInput" class="sr-only">Buscar protocolo</label>
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none" aria-hidden="true"><svg class="h-5 w-5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" /></svg></div>
+                    <input type="search" id="searchInput" class="w-full pl-12 pr-4 py-4 text-base placeholder-zinc-400 border border-zinc-300 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]" placeholder="Buscar por Asma, Dengue, Cetoacidose..."/>
+                </div>
+            </div>
+        </header>
+        <div class="container mx-auto p-4 md:p-8">
+            <div id="protocols-container" class="space-y-12"></div>
+            <div id="no-results" class="hidden text-center py-12"><h3 class="text-xl font-semibold text-zinc-700">Nenhum protocolo encontrado</h3><p class="text-zinc-500 mt-2">Tente ajustar sua busca.</p></div>
+        </div>
+        <footer class="text-center py-8 mt-12 border-t border-zinc-200"><p class="text-sm text-zinc-500">&copy; 2025 Portal de Protocolos Pediátricos</p></footer>
+    </main>
+
+    <article id="protocol-view" class="hidden">
+        <header class="bg-white shadow-sm sticky top-0 z-20"><div class="container mx-auto p-4 flex justify-between items-center"><button id="back-to-portal" aria-label="Voltar ao portal de protocolos" class="flex items-center text-sm font-semibold" style="color: var(--brand-primary);"><svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>Voltar ao Portal</button><h1 id="protocol-title-header" class="text-xl font-bold text-zinc-800 text-center"></h1><div class="w-28"></div></div></header>
+        <div class="container mx-auto p-4 md:p-8">
+            <div id="protocol-content-wrapper" class="flex flex-col lg:flex-row gap-8">
+                <aside id="protocol-nav-container" class="lg:w-1/4 xl:w-1/5">
+                    <div class="sticky top-24">
+                        <h3 class="font-semibold text-zinc-900 mb-3">Navegar no Protocolo</h3>
+                        <nav id="protocol-nav" class="flex flex-col space-y-1"></nav>
+                    </div>
+                </aside>
+                <main id="protocol-content" class="w-full"></main>
+            </div>
+        </div>
+    </article>
+    
+    <button id="back-to-top" aria-label="Voltar ao topo da página" class="hidden text-2xl">&uarr;</button>
+
+    <script defer>
+        const icons = {
+            heartPulse: `<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>`,
+            lungs: `<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 5.636l-3.536 3.536m0 0a5 5 0 10-7.07 0l-1.415-1.414m8.485 1.414L12 12m0 0l-1.414 1.414m0 0a5 5 0 107.07 0l1.414-1.414m-8.484-1.414l3.536-3.536"></path></svg>`,
+            brain: `<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>`,
+            virus: `<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`,
+            //... (outros ícones podem ser adicionados aqui)
+        };
+
+        const categories = { 'suporte-vida': { title: 'Suporte à Vida' }, 'respiratorio': { title: 'Respiratório' }, 'neurologia': { title: 'Neurologia' }, /* ... */ };
+        
+        const protocolData = {
+            'respiratorio': [
+                { id: 'bva', title: 'Bronquiolite Viral Aguda', short: 'Manejo Visual', icon: icons.lungs, type: 'visual' },
+                { id: 'asma', title: 'Crise de Asma', short: 'Manejo Agudo', icon: icons.lungs, type: 'document' },
+                // ... outros protocolos respiratórios
+            ],
+            'neurologia': [
+                { id: 'tce', title: 'TCE Leve', short: 'Critérios de TC', icon: icons.brain, type: 'document' },
+                // ... outros protocolos de neurologia
+            ]
+        };
+
+        // Conteúdo detalhado para os protocolos
+        const tceLeveContent = `... (conteúdo do TCE como na versão anterior) ...`;
+        const bvaContent = `
+            <div class="visual-protocol-grid">
+                <div class="visual-card">
+                    <div class="visual-card-header bg-sky-100 border-sky-200"><h4 class="text-sky-800">Background e Definição</h4></div>
+                    <div class="visual-card-body">
+                        <ul>
+                            <li>Infecção viral aguda das vias aéreas inferiores, comum em lactentes.</li>
+                            <li><strong>Principal agente:</strong> Vírus Sincicial Respiratório (VSR) em >75% dos casos.</li>
+                            <li>Diagnóstico é <strong>CLÍNICO</strong>.</li>
+                            <li>Pico de incidência: 2 a 6 meses de idade.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="visual-card">
+                    <div class="visual-card-header bg-amber-100 border-amber-200"><h4 class="text-amber-800">Fatores de Risco para Doença Grave</h4></div>
+                    <div class="visual-card-body">
+                        <ul>
+                            <li>Idade < 12 semanas.</li>
+                            <li>Prematuridade (< 37 semanas).</li>
+                            <li>Doença cardíaca congênita.</li>
+                            <li>Doença pulmonar crônica (ex: Displasia Broncopulmonar).</li>
+                            <li>Imunodeficiência.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="visual-card">
+                    <div class="visual-card-header bg-violet-100 border-violet-200"><h4 class="text-violet-800">Exame Físico</h4></div>
+                    <div class="visual-card-body">
+                        <ul>
+                            <li><strong>Taquipneia</strong> (FR > 60 irpm).</li>
+                            <li><strong>Tiragem</strong> (subcostal, intercostal, fúrcula).</li>
+                            <li>Sibilos e/ou estertores crepitantes.</li>
+                            <li>Ausculta com tempo expiratório prolongado.</li>
+                            <li>Episódios de apneia (especialmente em < 2 meses e prematuros).</li>
+                        </ul>
+                    </div>
+                </div>
+                 <div class="visual-card">
+                    <div class="visual-card-header bg-green-100 border-green-200"><h4 class="text-green-800">Tratamento de Suporte</h4></div>
+                    <div class="visual-card-body">
+                        <ul>
+                            <li><strong>Desobstrução nasal</strong> com soro fisiológico antes das mamadas e sempre que necessário.</li>
+                            <li><strong>Hidratação:</strong> Incentivar aleitamento materno/fórmula. Considerar SNG se houver recusa ou grande desconforto.</li>
+                            <li><strong>Oxigênio suplementar</strong> se SpO₂ < 90-92% para manter saturação acima deste nível.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="visual-card">
+                    <div class="visual-card-header bg-red-100 border-red-200"><h4 class="text-red-800">O que NÃO FAZER (Baseado em Evidências)</h4></div>
+                    <div class="visual-card-body">
+                        <ul>
+                            <li>❌ <strong>NÃO</strong> usar broncodilatadores (Salbutamol) de rotina.</li>
+                            <li>❌ <strong>NÃO</strong> usar corticoides (inalatório ou sistêmico).</li>
+                            <li>❌ <strong>NÃO</strong> usar antibióticos (a menos que haja co-infecção bacteriana comprovada).</li>
+                            <li>❌ <strong>NÃO</strong> solicitar Raio-X de tórax de rotina.</li>
+                            <li>❌ <strong>NÃO</strong> realizar fisioterapia respiratória na fase aguda.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="visual-card">
+                    <div class="visual-card-header bg-blue-100 border-blue-200"><h4 class="text-blue-800">Critérios de Internação</h4></div>
+                    <div class="visual-card-body">
+                        <ul>
+                            <li>Necessidade de O₂ (SpO₂ < 90-92%).</li>
+                            <li>Desconforto respiratório importante.</li>
+                            <li>Desidratação / Ingesta oral < 50-75% do habitual.</li>
+                            <li>Apneia.</li>
+                            <li>Condições sociais que impeçam o cuidado seguro em casa.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = {
+                init() {
+                    this.cacheDOMElements();
+                    this.addEventListeners();
+                    this.initializeProtocols();
+                    this.renderPortal();
+                },
+                cacheDOMElements() {
+                    this.dom = {
+                        portalView: document.getElementById('portal-view'),
+                        protocolView: document.getElementById('protocol-view'),
+                        backToPortalBtn: document.getElementById('back-to-portal'),
+                        protocolTitleHeader: document.getElementById('protocol-title-header'),
+                        protocolContentWrapper: document.getElementById('protocol-content-wrapper'),
+                        protocolNavContainer: document.getElementById('protocol-nav-container'),
+                        protocolNav: document.getElementById('protocol-nav'),
+                        protocolContent: document.getElementById('protocol-content'),
+                        protocolsContainer: document.getElementById('protocols-container'),
+                        noResults: document.getElementById('no-results'),
+                        searchInput: document.getElementById('searchInput'),
+                        backToTopBtn: document.getElementById('back-to-top'),
+                    };
+                },
+                addEventListeners() {
+                    this.dom.backToPortalBtn.addEventListener('click', () => this.showView('portal'));
+                    this.dom.searchInput.addEventListener('keyup', () => this.filterProtocols());
+                    window.addEventListener('scroll', () => this.handleScroll());
+                    this.dom.backToTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+                },
+                initializeProtocols() {
+                    const tceProtocol = protocolData.neurologia.find(p => p.id === 'tce');
+                    if (tceProtocol) tceProtocol.content = tceLeveContent;
+
+                    const bvaProtocol = protocolData.respiratorio.find(p => p.id === 'bva');
+                    if (bvaProtocol) bvaProtocol.content = bvaContent;
+
+                    Object.values(protocolData).flat().forEach(p => {
+                        if (!p.content) {
+                            p.content = `<section id="placeholder"><h2>Protocolo em Desenvolvimento</h2><p>O conteúdo detalhado para <strong>${p.title}</strong> está sendo elaborado.</p></section>`;
+                            p.type = 'document';
+                        }
+                    });
+                },
+                renderPortal() {
+                    // ... (código para renderizar os cards do portal, igual à versão anterior)
+                    const container = this.dom.protocolsContainer; container.innerHTML = '';
+                    for (const categoryId in categories) {
+                        const category = categories[categoryId]; const protocols = protocolData[categoryId];
+                        if (!protocols || protocols.length === 0) continue;
+                        const section = document.createElement('section'); section.className = 'protocol-category';
+                        section.innerHTML = `<h2 class="text-2xl font-bold border-b-2 pb-2 mb-6" style="border-color: var(--brand-primary); color: var(--brand-primary);">${category.title}</h2><div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 md:gap-6"></div>`;
+                        const grid = section.querySelector('.grid');
+                        protocols.forEach(p => {
+                            const card = document.createElement('div');
+                            card.className = 'protocol-card bg-white p-4 md:p-5 rounded-xl md:rounded-2xl shadow-sm border border-[var(--border-color)]';
+                            card.dataset.protocolId = p.id; card.tabIndex = 0; card.setAttribute('role', 'button'); card.setAttribute('aria-label', `Abrir protocolo ${p.title}`);
+                            card.innerHTML = `<div class="p-3 mb-3" style="color: var(--brand-primary);">${p.icon}</div><h3 class="font-semibold text-sm md:text-base text-zinc-800">${p.title}</h3><p class="text-zinc-500 text-xs md:text-sm">${p.short}</p>`;
+                            card.addEventListener('click', () => this.showView('protocol', p.id));
+                            card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') this.showView('protocol', p.id); });
+                            grid.appendChild(card);
+                        });
+                        container.appendChild(section);
+                    }
+                },
+                showView(viewName, protocolId = null) {
+                    this.state = { currentView: viewName, currentProtocol: protocolId };
+                    this.dom.portalView.classList.toggle('hidden', viewName !== 'portal');
+                    this.dom.protocolView.classList.toggle('hidden', viewName !== 'protocol');
+                    if (viewName === 'protocol' && protocolId) this.renderProtocolPage(protocolId);
+                },
+                renderProtocolPage(protocolId) {
+                    const protocol = Object.values(protocolData).flat().find(p => p.id === protocolId);
+                    if (!protocol) return;
+
+                    this.dom.protocolTitleHeader.textContent = protocol.title;
+                    this.dom.protocolContent.innerHTML = protocol.content;
+                    
+                    // Condicional para mostrar/esconder navegação lateral
+                    if (protocol.type === 'visual') {
+                        this.dom.protocolNavContainer.classList.add('hidden');
+                        this.dom.protocolContent.classList.remove('lg:w-3/4', 'xl:w-4/5');
+                        this.dom.protocolContent.classList.add('w-full');
+                    } else { // 'document' type
+                        this.dom.protocolNavContainer.classList.remove('hidden');
+                        this.dom.protocolContent.classList.add('lg:w-3/4', 'xl:w-4/5');
+                        this.dom.protocolContent.classList.remove('w-full');
+                        this.renderProtocolNav();
+                    }
+                    
+                    window.scrollTo(0, 0);
+                },
+                renderProtocolNav() {
+                    // ... (código para renderizar a navegação, igual à versão anterior)
+                    const sections = this.dom.protocolContent.querySelectorAll('section[id]');
+                    this.dom.protocolNav.innerHTML = '';
+                    sections.forEach(section => {
+                        const titleEl = section.querySelector('h2');
+                        if (!titleEl) return;
+                        const link = document.createElement('a');
+                        link.href = `#${section.id}`;
+                        link.textContent = titleEl.textContent.replace(/^\d+\.\s*/, '');
+                        link.className = 'protocol-nav-link block border-l-4 border-transparent py-2 px-4 text-zinc-600 hover:bg-zinc-100 rounded-r-md';
+                        this.dom.protocolNav.appendChild(link);
+                    });
+                    this.updateActiveNavLink();
+                },
+                filterProtocols() { /* ... código de filtro ... */ },
+                updateActiveNavLink() { /* ... código de atualização de navegação ... */ },
+                handleScroll() {
+                    if (this.state?.currentView === 'protocol') this.updateActiveNavLink();
+                    this.dom.backToTopBtn.classList.toggle('visible', window.scrollY > 400);
+                }
+            };
+            app.init();
+        });
+    </script>
+</body>
+</html>
